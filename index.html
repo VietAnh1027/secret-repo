@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lễ Tốt Nghiệp — Thiệp Mời</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<svg class="doodle" style="top:6%; left:4%; width:52px;" viewBox="0 0 24 24" fill="none"><path d="M12 2L1 8l11 6 9-4.9V17h2V8L12 2z" fill="#D4AF6A" opacity="0.5"/></svg>
+<svg class="doodle" style="bottom:8%; right:6%; width:8px; height:8px;" viewBox="0 0 8 8" fill="none"><rect x="0" y="0" width="8" height="8" fill="#D4AF6A" transform="rotate(45 4 4)" opacity="0.5"/></svg>
+
+<section id="screen-gate" class="screen active">
+  <div class="gate-card ornate">
+    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+    <svg class="gate-monogram" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="22" stroke="#D4AF6A" stroke-width="1" opacity="0.6"/>
+      <circle cx="24" cy="24" r="16" stroke="#D4AF6A" stroke-width="0.8" opacity="0.4"/>
+      <path d="M17 27c1.5-6 4-10 7-10s5.5 4 7 10" stroke="#D4AF6A" stroke-width="1.2" fill="none" opacity="0.85"/>
+    </svg>
+    <div class="gate-eyebrow">VietAnh1027</div>
+    <h1 class="gate-title display">Trước khi tiếp tục, mình cần chắc chắn đó là bạn</h1>
+
+    <div class="flourish gate-flourish">
+      <span class="fl-line"></span><span class="fl-diamond"></span><span class="fl-line"></span>
+    </div>
+
+    <p class="gate-sub">Có một điều đặc biệt đang chờ bạn — nhưng trước tiên, hãy cho mình biết bạn là ai đã nhé.</p>
+
+    <label class="field-label" for="nameInput">Họ và tên</label>
+    <input id="nameInput" class="name-input" type="text" placeholder="Nhập họ và tên của bạn..." autocomplete="off">
+    <button class="btn btn-primary" onclick="handleGateSubmit()">Tiếp tục</button>
+    <div class="hint">Bạn có thể nhập tên có dấu hoặc không dấu đều được.</div>
+  </div>
+</section>
+
+<section id="screen-invite" class="screen">
+  <div class="invite-wrap">
+    <div class="invite-card">
+      <div class="invite-header">
+        <svg class="cap-badge" viewBox="0 0 64 64" fill="none">
+          <path d="M32 8L6 20l26 12 26-12L32 8z" fill="#D4AF6A"/>
+          <path d="M16 26v12c0 4 7 9 16 9s16-5 16-9V26" stroke="#D4AF6A" stroke-width="2.2" fill="none"/>
+          <line x1="52" y1="22" x2="52" y2="40" stroke="#F4DFA0" stroke-width="2.2"/>
+          <circle cx="52" cy="42" r="2.3" fill="#F4DFA0"/>
+        </svg>
+        <div class="invite-eyebrow">Thiệp mời chính thức</div>
+        <h1 class="invite-title gold-text">Lễ Tốt Nghiệp</h1>
+        <div class="invite-subtitle">Graduation Ceremony</div>
+      </div>
+      <div class="invite-body">
+
+        <div class="guest-spotlight">
+          <div class="guest-label">Trân trọng kính mời</div>
+          <div class="guest-name gold-text" id="guestNameInvite">—</div>
+          <div class="guest-note">đến tham dự cùng <b id="hostName">—</b> trong buổi tốt nghiệp này</div>
+        </div>
+
+        <div class="flourish"><span class="fl-line"></span><span class="fl-diamond"></span><span class="fl-line"></span></div>
+
+        <div class="info-stack">
+          <div class="info-item">
+            <div class="info-label">Thời gian</div>
+            <div class="info-value" id="eventTime">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Địa điểm</div>
+            <div class="info-value" id="eventVenue">—</div>
+          </div>
+        </div>
+
+        <div class="section-title">Lịch trình buổi lễ</div>
+        <ul class="timeline" id="timelineList"></ul>
+
+        <div class="section-title">Hướng dẫn vào trường</div>
+        <div class="directions-box" id="directionsText"></div>
+        <div style="text-align:center;">
+          <a class="map-link" id="mapLink" href="#" target="_blank" rel="noopener">
+            📍 Mở chỉ đường trên Google Maps
+          </a>
+        </div>
+
+        <p class="rsvp-title">Vui lòng xác nhận tham dự ở bên dưới</p>
+        <div class="rsvp-row" id="rsvpRow">
+          <button class="btn btn-accept" onclick="handleAccept()">Tôi sẽ tham dự 🎉</button>
+          <button class="btn btn-decline" id="declineBtn">Tôi không thể tham dự</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="screen-reject" class="screen">
+  <div class="reject-card ornate">
+    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+    <div class="reject-emoji" id="rejectEmoji">🤔</div>
+    <p class="reject-text" id="rejectText">—</p>
+    <button class="btn btn-secondary" onclick="goTo('screen-gate')">Thử lại</button>
+  </div>
+</section>
+
+<section id="screen-thanks" class="screen">
+  <div class="thanks-card">
+    <div class="thanks-header">
+      <div style="font-size:34px; margin-bottom:10px;">🎊</div>
+      <div class="tracked" style="font-size:11px; color:#8FD6BA; margin-bottom:10px; font-weight:600;">Đã xác nhận tham dự</div>
+      <h1 class="display" style="font-size:25px; font-weight:600; font-style:italic; margin:0;">Hẹn gặp bạn ở lễ tốt nghiệp!</h1>
+    </div>
+    <div class="thanks-body">
+      <p style="margin:0 0 6px; color:var(--ink-soft); font-size:13.5px;">Cảm ơn</p>
+      <p class="thanks-name gold-text" id="thanksName">—</p>
+      <p style="color:var(--ink-soft); font-size:14px; line-height:1.7; margin-top:8px;">
+        đã xác nhận sẽ có mặt. Mình rất mong được gặp bạn trong ngày đặc biệt này!
+      </p>
+
+      <div class="section-title">Hướng dẫn vào trường</div>
+      <div class="directions-box" id="directionsTextThanks"></div>
+      <div style="text-align:center;">
+        <a class="map-link" id="mapLinkThanks" href="#" target="_blank" rel="noopener">
+          📍 Mở chỉ đường trên Google Maps
+        </a>
+      </div>
+
+      <button class="btn ics-btn" onclick="downloadICS()">📅 Thêm vào lịch của tôi</button>
+    </div>
+  </div>
+</section>
+
+<script src="script.js"></script>
+</body>
+</html>
