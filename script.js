@@ -209,25 +209,86 @@ function burstConfetti() {
   }
 }
 
-function downloadICS() {
-  const dtStamp = "20260816T003000Z";
-  const dtStart = "20260816T003000Z";
-  const dtEnd = "20260816T033000Z";
-  const ics = [
+/* ---------- Thêm vào lịch (Android + iOS) ---------- */
+function buildICSContent() {
+  // Sự kiện: 18/08/2026, 10:30 sáng giờ VN (UTC+7) → UTC là 03:30
+  const dtStamp = "20260818T033000Z";
+  const dtStart = "20260818T033000Z";
+  const dtEnd   = "20260818T063000Z"; // kết thúc 13:30 VN (06:30 UTC)
+  return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
+    "PRODID:-//Le Tot Nghiep//VI",
     "BEGIN:VEVENT",
     "UID:" + Date.now() + "@le-tot-nghiep",
     "DTSTAMP:" + dtStamp,
     "DTSTART:" + dtStart,
-    "DTEND:" + dtEnd,
+    "DTEND:"   + dtEnd,
     "SUMMARY:Lễ Tốt Nghiệp - " + HOST_NAME,
-    "LOCATION:" + EVENT_VENUE + ", " + EVENT_ADDRESS,
-    "DESCRIPTION:" + DIRECTIONS_TEXT.replace(/,/g, '\\,'),
+    "LOCATION:" + EVENT_VENUE + "\\, " + EVENT_ADDRESS,
+    "DESCRIPTION:" + DIRECTIONS_TEXT.replace(/\n/g, '\\n').replace(/,/g, '\\,'),
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:Hôm nay là Lễ Tốt Nghiệp của " + HOST_NAME + "! 🎓🎉",
+    "TRIGGER:-PT10H30M", // Thông báo ngay khi vừa sang ngày 18/08 (00:00 sáng, trước 10 tiếng 30 phút)
+    "END:VALARM",
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:Sắp đến Lễ Tốt Nghiệp của " + HOST_NAME + " (10:30)! 🎓",
+    "TRIGGER:-PT2H", // Thông báo nhắc nhở trước 2 tiếng (08:30 sáng)
+    "END:VALARM",
     "END:VEVENT",
     "END:VCALENDAR"
   ].join("\r\n");
-  const blob = new Blob([ics], { type: 'text/calendar' });
+}
+
+function buildGoogleCalendarUrl() {
+  // Google Calendar URL — hoạt động tốt trên Android & web
+  const base = "https://www.google.com/calendar/render?action=TEMPLATE";
+  const title = encodeURIComponent("Lễ Tốt Nghiệp - " + HOST_NAME);
+  // dates format: YYYYMMDDTHHMMSSZ/YYYYMMDDTHHMMSSZ
+  const dates = encodeURIComponent("20260818T033000Z/20260818T063000Z");
+  const location = encodeURIComponent(EVENT_VENUE + ", " + EVENT_ADDRESS);
+  const details = encodeURIComponent(DIRECTIONS_TEXT);
+  return `${base}&text=${title}&dates=${dates}&location=${location}&details=${details}`;
+}
+
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isAndroid() {
+  return /Android/.test(navigator.userAgent);
+}
+
+function downloadICS() {
+  const icsContent = buildICSContent();
+
+  if (isIOS()) {
+    // iOS: dùng data URI thay vì Blob URL vì Safari mobile không tải Blob
+    const dataUri = "data:text/calendar;charset=utf-8," + encodeURIComponent(icsContent);
+    const a = document.createElement('a');
+    a.href = dataUri;
+    a.download = 'le-tot-nghiep.ics';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Nếu download không hoạt động, mở trực tiếp để iOS Calendar app bắt
+    setTimeout(() => {
+      window.open(dataUri, '_blank');
+    }, 300);
+    return;
+  }
+
+  if (isAndroid()) {
+    // Android: ưu tiên Google Calendar (đáng tin cậy nhất)
+    showCalendarModal();
+    return;
+  }
+
+  // Desktop / các trình duyệt khác: tải file .ics bình thường
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -236,4 +297,90 @@ function downloadICS() {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+function showCalendarModal() {
+  // Xoá modal cũ nếu có
+  const existing = document.getElementById('cal-modal');
+  if (existing) existing.remove();
+
+  const icsContent = buildICSContent();
+  const googleUrl  = buildGoogleCalendarUrl();
+  const dataUri    = "data:text/calendar;charset=utf-8," + encodeURIComponent(icsContent);
+
+  const modal = document.createElement('div');
+  modal.id = 'cal-modal';
+  modal.innerHTML = `
+    <div id="cal-modal-backdrop"></div>
+    <div id="cal-modal-box">
+      <div id="cal-modal-title">📅 Thêm vào lịch</div>
+      <div id="cal-modal-subtitle">Chọn ứng dụng lịch bạn muốn dùng</div>
+      <a href="${googleUrl}" target="_blank" rel="noopener" class="cal-option" id="cal-google">
+        <span class="cal-icon">🗓️</span>
+        <span>Google Calendar</span>
+      </a>
+      <a href="${dataUri}" download="le-tot-nghiep.ics" class="cal-option" id="cal-ics"
+         onclick="setTimeout(()=>document.getElementById('cal-modal').remove(),500)">
+        <span class="cal-icon">📲</span>
+        <span>Tải file .ics (iPhone / Outlook)</span>
+      </a>
+      <button id="cal-modal-close">Đóng</button>
+    </div>
+  `;
+
+  // Inline styles để modal tự đứng độc lập không phụ thuộc CSS bên ngoài
+  Object.assign(modal.style, {
+    position: 'fixed', inset: '0', zIndex: '9999',
+    display: 'flex', alignItems: 'center', justifyContent: 'center'
+  });
+  const backdrop = modal.querySelector('#cal-modal-backdrop');
+  Object.assign(backdrop.style, {
+    position: 'absolute', inset: '0',
+    background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)'
+  });
+  const box = modal.querySelector('#cal-modal-box');
+  Object.assign(box.style, {
+    position: 'relative', background: '#1a1208',
+    border: '1px solid #D4AF6A44', borderRadius: '16px',
+    padding: '28px 24px', width: 'min(340px, 90vw)',
+    display: 'flex', flexDirection: 'column', gap: '12px',
+    boxShadow: '0 8px 40px rgba(0,0,0,0.6)'
+  });
+  const title = modal.querySelector('#cal-modal-title');
+  Object.assign(title.style, {
+    fontSize: '18px', fontWeight: '700',
+    color: '#D4AF6A', textAlign: 'center', marginBottom: '2px'
+  });
+  const subtitle = modal.querySelector('#cal-modal-subtitle');
+  Object.assign(subtitle.style, {
+    fontSize: '13px', color: '#bbb', textAlign: 'center', marginBottom: '6px'
+  });
+  modal.querySelectorAll('.cal-option').forEach(el => {
+    Object.assign(el.style, {
+      display: 'flex', alignItems: 'center', gap: '12px',
+      padding: '14px 16px', borderRadius: '10px',
+      background: 'rgba(212,175,106,0.08)',
+      border: '1px solid rgba(212,175,106,0.25)',
+      color: '#F4DFA0', textDecoration: 'none',
+      fontSize: '15px', fontWeight: '500', cursor: 'pointer',
+      transition: 'background 0.2s'
+    });
+    el.addEventListener('mouseenter', () => el.style.background = 'rgba(212,175,106,0.18)');
+    el.addEventListener('mouseleave', () => el.style.background = 'rgba(212,175,106,0.08)');
+  });
+  const closeBtn = modal.querySelector('#cal-modal-close');
+  Object.assign(closeBtn.style, {
+    marginTop: '4px', padding: '10px',
+    background: 'transparent', border: '1px solid #444',
+    borderRadius: '8px', color: '#888',
+    fontSize: '14px', cursor: 'pointer'
+  });
+  closeBtn.addEventListener('click', () => modal.remove());
+  backdrop.addEventListener('click', () => modal.remove());
+
+  modal.querySelector('#cal-google').addEventListener('click', () => {
+    setTimeout(() => modal.remove(), 300);
+  });
+
+  document.body.appendChild(modal);
 }
