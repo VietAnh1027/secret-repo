@@ -19,7 +19,8 @@ const GUEST_LIST_RAW = [
   "Bùi Tố Hoàng Đạt",
   "Nguyễn Duy Quân",
   "Phạm Đặng Quang Hải",
-  "Bùi Nho Minh"
+  "Bùi Nho Minh",
+  "Nguyễn Diệu Anh",
 ];
 
 const EVENT_TIME = "10:30 sáng, Thứ Ba, 18/08/2026";
