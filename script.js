@@ -11,17 +11,9 @@ const supabaseClient = window.supabase.createClient(
 
 const HOST_NAME = "Nguyễn Việt Anh"; // Tên bạn (người mời)
 
-const GUEST_LIST_RAW = [
-  "Nguyễn Duy Đức",
-  "Nguyễn Minh Thư",
-  "Trần Tuấn Đạt",
-  "Nguyễn Chu Tú",
-  "Bùi Tố Hoàng Đạt",
-  "Nguyễn Duy Quân",
-  "Phạm Đặng Quang Hải",
-  "Bùi Nho Minh",
-  "Nguyễn Diệu Anh",
-];
+const GUEST_LIST = [];
+let guestListLoaded = false;
+let guestListLoadError = false;
 
 const EVENT_TIME = "10:30 sáng, Thứ Ba, 18/08/2026";
 const EVENT_VENUE = "Khu A, Đại học Công nghiệp Hà Nội";
@@ -40,6 +32,45 @@ const DIRECTIONS_TEXT = `Gửi xe trực tiếp trong trường, có 3 chỗ g�
 2,3. Cứ đi xe máy vào theo chỉ dẫn Google Map sẽ thấy 2 chỗ để xe tiếp.
 Hội trường nằm ở tầng 3 chỗ thư viện`;
 
+async function loadGuestList() {
+  const { data, error } = await supabaseClient
+    .from('guest_list')
+    .select('*');
+
+  if (error) {
+    console.error('Lỗi tải danh sách khách mời:', error);
+    guestListLoadError = true;
+    return;
+  }
+
+  if (!Array.isArray(data)) {
+    console.error('Dữ liệu guest_list không hợp lệ:', data);
+    guestListLoadError = true;
+    return;
+  }
+
+  console.debug('Supabase guest_list raw data:', data);
+
+  let rowsAdded = 0;
+  data.forEach(row => {
+    const nameValue = row?.name ?? row?.guest_name ?? row?.full_name ?? row?.ten ?? row?.HoVaTen ?? row?.Ten;
+    if (nameValue) {
+      GUEST_LIST.push({
+        display: nameValue,
+        normalized: normalizeName(nameValue)
+      });
+      rowsAdded += 1;
+    }
+  });
+
+  guestListLoaded = true;
+
+  if (!rowsAdded) {
+    const sampleKeys = data.length ? Object.keys(data[0]).join(', ') : 'không có hàng nào';
+    console.warn('Danh sách khách mời Supabase trống hoặc không có trường tên hợp lệ. Các trường hiện có:', sampleKeys);
+  }
+}
+
 function normalizeName(str) {
   return str
     .toLowerCase()
@@ -48,11 +79,6 @@ function normalizeName(str) {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '');
 }
-
-const GUEST_LIST = GUEST_LIST_RAW.map(name => ({
-  display: name,
-  normalized: normalizeName(name)
-}));
 
 const FORMAL_MESSAGES = [
   "Xin lỗi, có vẻ đây không phải là điều dành cho bạn. Mình xin phép không chia sẻ thêm, mong bạn thông cảm 🙏",
@@ -80,6 +106,17 @@ function handleGateSubmit() {
     document.getElementById('nameInput').focus();
     return;
   }
+
+  if (!guestListLoaded && !guestListLoadError) {
+    alert('Danh sách khách mời đang được tải. Vui lòng thử lại trong giây lát.');
+    return;
+  }
+
+  if (guestListLoadError) {
+    alert('Không thể tải danh sách khách mời. Vui lòng kiểm tra kết nối hoặc thử lại sau.');
+    return;
+  }
+
   const norm = normalizeName(input);
   const match = GUEST_LIST.find(g => g.normalized === norm);
 
@@ -113,6 +150,8 @@ function handleGateSubmit() {
 document.getElementById('nameInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') handleGateSubmit();
 });
+
+loadGuestList();
 
 function mapsUrl(query) {
   return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
